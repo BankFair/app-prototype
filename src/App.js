@@ -1,5 +1,13 @@
 import React, { Component } from "react";
-import Button from "@mui/material/Button";
+import {
+  Box,
+  AppBar,
+  Toolbar,
+  Typography,
+  Button,
+} from "@mui/material";
+import LoginIcon from '@mui/icons-material/Login';
+import LogoutIcon from '@mui/icons-material/Logout';
 
 import Web3 from "web3";
 
@@ -8,7 +16,6 @@ import ERC20 from "./contracts/ERC20.json";
 import BankFairPool from "./contracts/BankFairPool.json";
 
 import "./App.css";
-import { Paper, Typography } from "@mui/material";
 
 class App extends Component {
 
@@ -125,12 +132,12 @@ class App extends Component {
 
     try {
       const networkId = await web3.eth.net.getId();
-      this.setState({selectedNetworkId: networkId});
+      this.setState({ selectedNetworkId: networkId });
 
       if (networkId !== config.APP_NETWORK_ID) {
         return;
       }
-      
+
       const bankContract = new web3.eth.Contract(BankFairPool.abi, BankFairPool.networks[config.APP_NETWORK_ID].address);
       const tokenAddress = await bankContract.methods.token().call();
       const tokenContract = new web3.eth.Contract(ERC20.abi, tokenAddress);
@@ -152,35 +159,53 @@ class App extends Component {
     this.setState({ manager: managerAddress });
   };
 
-  render() {
-    if (!this.state.web3) {
+  loginButton = () => {
+    if (this.state.isLoggedIn) {
       return (
-        <div className="App">
-          <div className="App-header">
-            <Typography>Install Metamask and reload.</Typography>
-          </div>
-        </div>
-      );
-    }
-
-    if (!this.state.walletAddress) {
-      return (
-        <div className="App">
-          <div className="App-header">
-            <Button variant="outlined" onClick={this.logIn}>Connect Wallet</Button>
-          </div>
-        </div>
+        <Button startIcon={<LogoutIcon/>} color="inherit" onClick={this.logOut}>Disconnect Wallet</Button>
       );
     }
 
     return (
-      <div className="App">
-        <div className="App-header">
-          <Typography className="notice" hidden={this.state.selectedNetworkId === config.APP_NETWORK_ID}>Switch to Kovan Test Network</Typography>
-          <Typography>Connected {this.state.walletAddress}</Typography>
-          <Button variant="outlined" onClick={this.logOut}>Disconnect Wallet</Button>
-          <Paper></Paper>
+      <Button startIcon={<LoginIcon/>} color="inherit" onClick={this.logIn}>Connect Wallet</Button>
+    );
+  }
+
+  loggedInUser = () => {
+    if (this.state.isLoggedIn && this.state.walletAddress) {
+      return (<Typography className="padding_0_5_rem">Wallet {this.state.walletAddress}</Typography>);
+    }
+  }
+
+  problemBanner = () => {
+    if (!this.state.web3) {
+      return (
+        <div className="banner-error">
+          <Typography className="padding_0_5_rem">Install Metamask and reload</Typography>);
         </div>
+      );
+    } else if (this.state.selectedNetworkId !== config.APP_NETWORK_ID) {
+      return (
+        <div className="banner-error">
+          <Typography className="padding_0_5_rem">Switch to Kovan Test Network</Typography>
+        </div>
+      );
+    }
+  }
+
+  render() {
+    return (
+      <div>
+        <Box sx={{ flexGrow: 1 }}>
+          <AppBar position="static">
+            <Toolbar>
+              <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>BankFair</Typography>
+              {this.loggedInUser()}
+              {this.loginButton()}
+            </Toolbar>
+          </AppBar>
+          {this.problemBanner()}
+        </Box>
       </div>
     );
   }
