@@ -1,15 +1,15 @@
 import React, { Component } from "react";
 import {
   Box,
-  AppBar,
-  Toolbar,
-  Typography,
-  Button,
+  Stack,
 } from "@mui/material";
-import LoginIcon from '@mui/icons-material/Login';
-import LogoutIcon from '@mui/icons-material/Logout';
+import CustomAppBar from "./components/CustomAppBar";
+import ProblemBanner from "./components/ProblemBanner";
+import Balances from "./components/Balances";
+import StatsPanel from "./components/StatsPanel";
 
 import Web3 from "web3";
+import converter from "./util/converter";
 
 import config from "./contracts/config.json"
 import ERC20 from "./contracts/ERC20.json";
@@ -27,41 +27,59 @@ class App extends Component {
 
     tokenContract: null,
     tokenAddress: null,
-    tokenDecimals: 0,
     tokenSymbol: null,
+    tokenDecimals: 0,
 
     bankContract: null,
     manager: null,
+
+    poolShares: null,
+    poolSharesWorth: null,
+
+    contractTokenBalance: null,
+    contractPoolLiqudity: null,
+    loanFundsPendingWithdrawal: null,
+    contractBorrowedFunds: null,
+    contractPoolFunds: null,
+    totalPoolShares: null,
+    sharesStaked: null,
+    sharesStakedUnlocked: null,
+
+    percentDecimals: 2, //TODO retrive from contract
+    defaultAPR: null,
+    defaultLateFeePercent: null,
+    maxDuration: null,
+    minDuration: null,
+    minAmount: null,
   };
 
   componentDidMount = async () => {
+    
     try {
       if (window.ethereum) {
         const web3 = new Web3(window.ethereum);
         window.ethereum.on("accountsChanged", (accounts) => this.handleAccountChange(accounts));
         window.ethereum.on("networkChanged", (networkId) => this.handleNetworkChange(networkId));
-        this.setState({ web3 }, () => {
-          this.restoreLogin();
-          this.loadInitialState();
-        });
+        this.setState({ web3 }, this.postConstructActions);
       }
     } catch (error) {
       console.error(error);
     }
   };
 
-  handleAccountChange = async (accounts) => {
-    if (!this.state.isLoggedIn) {
-      return;
-    }
-    this.logOut();
+  postConstructActions = async () => {
+    await this.restoreLogin();
+    await this.loadContracts();
+    this.postLoginActions();
+    this.loadStats();
+    this.loadLoanParams();
   }
 
-  handleNetworkChange = async (networkId) => {
+  postLoginActions = async () => {
     if (!this.state.isLoggedIn) {
       return;
     }
-    this.setState({ selectedNetworkId: parseInt(networkId, 10) });
+    this.loadPoolBalances();
   }
 
   logIn = async () => {
@@ -102,6 +120,40 @@ class App extends Component {
       console.error(error);
     }
   }
+  
+  logOut = async () => {
+    if (!this.state.isLoggedIn) {
+      return;
+    }
+
+    localStorage.setItem("isLoggedIn", false);
+    localStorage.removeItem("walletAddress");
+    
+    //FIXME add fields to reset on logout
+    this.setState({ 
+      isLoggedIn: false,
+      walletAddress: null,
+      
+      poolShares: "0",
+      poolSharesWorth: "0",
+    });
+
+    //TODO disconnect from wallet
+  }
+
+  handleAccountChange = async (accounts) => {
+    if (!this.state.isLoggedIn) {
+      return;
+    }
+    this.logOut();
+  }
+
+  handleNetworkChange = async (networkId) => {
+    if (!this.state.isLoggedIn) {
+      return;
+    }
+    this.setState({ selectedNetworkId: parseInt(networkId, 10) });
+  }
 
   restoreLogin = async () => {
     if (JSON.parse(localStorage.getItem("isLoggedIn")) === true) {
@@ -112,19 +164,7 @@ class App extends Component {
     }
   }
 
-  logOut = async () => {
-    if (!this.state.isLoggedIn) {
-      return;
-    }
-
-    this.setState({ isLoggedIn: false, walletAddress: null });
-    localStorage.setItem("isLoggedIn", false);
-    localStorage.removeItem("walletAddress");
-
-    //TODO disconnect from wallet
-  }
-
-  loadInitialState = async () => {
+  loadContracts = async () => {
     const { web3 } = this.state;
     if (!web3) {
       return;
@@ -142,69 +182,149 @@ class App extends Component {
       const tokenAddress = await bankContract.methods.token().call();
       const tokenContract = new web3.eth.Contract(ERC20.abi, tokenAddress);
       const tokenSymbol = await tokenContract.methods.symbol().call();
-      const tokenDecimals = await tokenContract.methods.decimals().call();
+      const tokenDecimals = parseInt(await tokenContract.methods.decimals().call());
 
-      this.setState({ bankContract, tokenContract, tokenAddress, tokenSymbol, tokenDecimals });
+      const manager = await bankContract.methods.manager().call();
+
+      await this.setState({ manager, bankContract, tokenContract, tokenAddress, tokenSymbol, tokenDecimals });
     } catch (error) {
       console.error(error);
     }
   };
 
+  loadPoolBalances = async () => {
+    if (!this.state.isLoggedIn) {
+      return;
+    }
+
+    const { walletAddress, bankContract, tokenDecimals } = this.state;
+
+    bankContract.methods.sharesOf(walletAddress).call((error, poolShares) => {
+      if (error) {
+        return;
+      }
+      bankContract.methods.sharesToTokens(poolShares).call((error, poolSharesWorth) => {
+        if (error) {
+          return;
+        }
+        this.setState({
+          poolShares: converter.tokenToDisplayValue(poolShares, tokenDecimals, 2),
+          poolSharesWorth: converter.tokenToDisplayValue(poolSharesWorth, tokenDecimals, 2)
+        });
+      });
+    });
+  }
+
   loadStats = async () => {
-    const { bankContract } = this.state;
-
-    const managerAddress = await bankContract.methods.manager().call();
-    console.log("Manager: " + managerAddress);
-
-    this.setState({ manager: managerAddress });
-  };
-
-  loginButton = () => {
-    if (this.state.isLoggedIn) {
-      return (
-        <Button startIcon={<LogoutIcon/>} color="inherit" onClick={this.logOut}>Disconnect Wallet</Button>
-      );
+    const { web3, walletAddress, bankContract, tokenDecimals, percentDecimals } = this.state;
+    if (!web3) {
+      return;
     }
 
-    return (
-      <Button startIcon={<LoginIcon/>} color="inherit" onClick={this.logIn}>Connect Wallet</Button>
-    );
+    bankContract.methods.tokenBalance().call((error, value) => {
+      if(!error) {
+        this.setState({contractTokenBalance: converter.tokenToDisplayValue(value, tokenDecimals, 2)});
+      }
+    });
+
+    bankContract.methods.poolLiqudity().call((error, value) => {
+      if(!error) {
+        this.setState({contractPoolLiqudity: converter.tokenToDisplayValue(value, tokenDecimals, 2)});
+      }
+    });
+
+    bankContract.methods.loanFundsPendingWithdrawal().call((error, value) => {
+      if(!error) {
+        this.setState({loanFundsPendingWithdrawal: converter.tokenToDisplayValue(value, tokenDecimals, 2)});
+      }
+    });
+
+    bankContract.methods.borrowedFunds().call((error, value) => {
+      if(!error) {
+        this.setState({contractBorrowedFunds: converter.tokenToDisplayValue(value, tokenDecimals, 2)});
+      }
+    });
+
+    bankContract.methods.poolFunds().call((error, value) => {
+      if(!error) {
+        this.setState({contractPoolFunds: converter.tokenToDisplayValue(value, tokenDecimals, 2)});
+      }
+    });
+
+    bankContract.methods.totalPoolShares().call((error, value) => {
+      if(!error) {
+        this.setState({totalPoolShares: converter.tokenToDisplayValue(value, tokenDecimals, 2)});
+      }
+    });
+
+    bankContract.methods.sharesStaked().call((error, value) => {
+      if(!error) {
+        this.setState({sharesStaked: converter.tokenToDisplayValue(value, tokenDecimals, 2)});
+      }
+    });
+
+    bankContract.methods.sharesStakedUnlocked().call((error, value) => {
+      if(!error) {
+        this.setState({sharesStakedUnlocked: converter.tokenToDisplayValue(value, tokenDecimals, 2)});
+      }
+    });
   }
 
-  loggedInUser = () => {
-    if (this.state.isLoggedIn && this.state.walletAddress) {
-      return (<Typography className="padding_0_5_rem">Wallet {this.state.walletAddress}</Typography>);
+  loadLoanParams = async () => {
+    const { web3, walletAddress, bankContract, tokenDecimals, percentDecimals } = this.state;
+    if (!web3) {
+      return;
     }
-  }
 
-  problemBanner = () => {
-    if (!this.state.web3) {
-      return (
-        <div className="banner-error">
-          <Typography className="padding_0_5_rem">Install Metamask and reload</Typography>);
-        </div>
-      );
-    } else if (this.state.selectedNetworkId !== config.APP_NETWORK_ID) {
-      return (
-        <div className="banner-error">
-          <Typography className="padding_0_5_rem">Switch to Kovan Test Network</Typography>
-        </div>
-      );
-    }
+    bankContract.methods.defaultAPR().call((error, value) => {
+      if(!error) {
+        this.setState({defaultAPR: converter.percentToDisplayValue(value, percentDecimals, 2)});
+      }
+    });
+
+    bankContract.methods.defaultLateFeePercent().call((error, value) => {
+      if(!error) {
+        this.setState({defaultLateFeePercent: converter.percentToDisplayValue(value, percentDecimals, 2)});
+      }
+    });
+
+    bankContract.methods.minAmount().call((error, value) => {
+      if(!error) {
+        this.setState({minAmount: converter.tokenToDisplayValue(value, tokenDecimals, 2)});
+      }
+    });
+
+    bankContract.methods.minDuration().call((error, value) => {
+      if(!error) {
+        this.setState({minDuration: converter.secondsToDays(value)});
+      }
+    });
+
+    bankContract.methods.maxDuration().call((error, value) => {
+      if(!error) {
+        this.setState({maxDuration: converter.secondsToDays(value)});
+      }
+    });
   }
 
   render() {
     return (
       <div>
-        <Box sx={{ flexGrow: 1 }}>
-          <AppBar position="static">
-            <Toolbar>
-              <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>BankFair</Typography>
-              {this.loggedInUser()}
-              {this.loginButton()}
-            </Toolbar>
-          </AppBar>
-          {this.problemBanner()}
+        <Box className="main-container" sx={{ flexGrow: 1 }}>
+          <CustomAppBar
+            isLoggedIn={this.state.isLoggedIn}
+            walletAddress={this.state.walletAddress}
+            onLogIn={this.logIn}
+            onLogOut={this.logOut}
+          />
+          <ProblemBanner
+            isWalletMissing={this.state.web3 === null}
+            isWrongNetwork={this.state.selectedNetworkId !== config.APP_NETWORK_ID}
+          />
+          <Stack className="padding_0_5_rem" spacing={2}>
+            <Balances data={this.state} />
+            <StatsPanel data={this.state} />
+          </Stack>
         </Box>
       </div>
     );
