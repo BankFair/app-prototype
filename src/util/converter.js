@@ -1,6 +1,6 @@
 import BigNumber from "bignumber.js";
 
-var BigNumberRD = BigNumber.clone({ ROUNDING_MODE: 1 });
+export var BigNumberRD = BigNumber.clone({ ROUNDING_MODE: 1 });
 export var BigNumber2RD = BigNumberRD.clone({ DECIMAL_PLACES: 2 });
 var BN0 = BigNumberRD.clone({ DECIMAL_PLACES: 0 });
 
