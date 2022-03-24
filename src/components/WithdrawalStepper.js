@@ -89,15 +89,14 @@ export default function WithdrawalStepper(props) {
               setSharesWithdrawable(sharesWithdrawable);
               setSharesWithdrawableBN(new BigNumber2RD(sharesWithdrawable.replaceAll(',', '')));
 
-              const sharesWithdrawableTokenVal = converter.displayToTokenValue(sharesWithdrawable);
+              const sharesWithdrawableTokenVal = converter.displayToTokenValue(sharesWithdrawable, tokenDecimals);
 
               bankContract.methods.sharesToTokens(sharesWithdrawableTokenVal).call((error, tokensWithdrawable) => {
                 if (error) {
                   return;
                 }
-                setSharesWithdrawableWorth(converter.tokenToDisplayValue(tokensWithdrawable));
+                setSharesWithdrawableWorth(converter.tokenToDisplayValue(tokensWithdrawable, tokenDecimals, 2));
               });
-
             });
           });
         });
