@@ -57,6 +57,7 @@ export default function WithdrawalStepper(props) {
   const [estimatedTokens, setEstimatedTokens] = React.useState(null);
   const [withdrawalReceipt, setWithdrawalReceipt] = React.useState(null);
   const [withdrawalTxError, setWithdrawalTxError] = React.useState(null);
+  const [amountWithdrawn, setAmountWithdrawn] = React.useState(0);
 
   useEffect(() => {
     const { isLoggedIn, walletAddress, bankContract, tokenDecimals } = props.data;
@@ -146,6 +147,10 @@ export default function WithdrawalStepper(props) {
         .on('receipt', function (receipt) {
           setWithdrawalReceipt(receipt);
           setNextLoading(false);
+
+          if (receipt.events && receipt.events[0]) {
+            setAmountWithdrawn(converter.tokenToDisplayValue(new BigNumber(receipt.events[0].raw.data).integerValue().toString(10), tokenDecimals, 2));
+          }
         })
         .on('error', function (error, receipt) {
           setWithdrawalTxError(error?.message);
@@ -195,7 +200,7 @@ export default function WithdrawalStepper(props) {
                       Withdrawal Request Submitted
                     </Typography>
                     <Grid container spacing={1} sx={{ ml: 1, }}>
-                      <GridRow label="Amount Withdrawn" value={0 + " " + props.data.tokenSymbol} lcWidth="3" rcWidth="9" />
+                      <GridRow label="Amount Withdrawn" value={amountWithdrawn + " " + props.data.tokenSymbol} lcWidth="3" rcWidth="9" />
                       <Grid item xs={3}>
                         <Typography>Transaction</Typography>
                       </Grid>
