@@ -29,11 +29,17 @@ function Balances(props) {
 
   const [depositModalOpen, setDepositModalOpen] = React.useState(false);
   const handleOpenDepositModal = () => setDepositModalOpen(true);
-  const handleCloseDepositModal = () => setDepositModalOpen(false);
+  const handleCloseDepositModal = () => {
+    setDepositModalOpen(false);
+    props.onBalanceUpdate();
+  }
 
   const [withdrawModalOpen, setWithdrawModalOpen] = React.useState(false);
   const handleOpenWithdrawModal = () => setWithdrawModalOpen(true);
-  const handleCloseWithdrawModal = () => setWithdrawModalOpen(false);
+  const handleCloseWithdrawModal = () => {
+    setWithdrawModalOpen(false);
+    props.onBalanceUpdate();
+  }
 
   return (
     <>

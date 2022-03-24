@@ -83,6 +83,11 @@ class App extends Component {
     this.loadPoolBalances();
   }
 
+  balanceUpdateHandler = async () => {
+    this.postLoginActions();
+    this.loadStats();
+  }
+
   logIn = async () => {
     const { web3, isLoggedIn } = this.state;
     if (!web3 || isLoggedIn) {
@@ -336,7 +341,7 @@ class App extends Component {
             {
               this.state.isLoggedIn &&
               <>
-                <Balances data={this.state} />
+                <Balances data={this.state} onBalanceUpdate={this.balanceUpdateHandler} />
               </>
             }
             <StatsPanel data={this.state} />
