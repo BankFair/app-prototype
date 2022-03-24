@@ -70,7 +70,8 @@ export default function WithdrawalStepper(props) {
         if (error) {
           return;
         }
-        bankContract.methods.unlockedSharesOf(walletAddress).call((error, sharesWorthRaw) => {
+        setUnlockedShares(converter.tokenToDisplayValue(unlockedSharesRaw, tokenDecimals, 2));
+        bankContract.methods.sharesToTokens(unlockedSharesRaw).call((error, sharesWorthRaw) => {
           if (error) {
             return;
           }
@@ -78,17 +79,15 @@ export default function WithdrawalStepper(props) {
             if (error) {
               return;
             }
+            setPoolLiqudity(converter.tokenToDisplayValue(poolLiqudityRaw, tokenDecimals, 2));
             bankContract.methods.tokensToShares(BigNumber.min(sharesWorthRaw, poolLiqudityRaw)).call((error, sharesWithdrawableRaw) => {
               if (error) {
                 return;
               }
 
               const sharesWithdrawable = converter.tokenToDisplayValue(sharesWithdrawableRaw, tokenDecimals, 2);
-
               setSharesWithdrawable(sharesWithdrawable);
               setSharesWithdrawableBN(new BigNumber2RD(sharesWithdrawable.replaceAll(',', '')));
-              setUnlockedShares(converter.tokenToDisplayValue(unlockedSharesRaw, tokenDecimals, 2));
-              setPoolLiqudity(converter.tokenToDisplayValue(poolLiqudityRaw, tokenDecimals, 2));
 
               const sharesWithdrawableTokenVal = converter.displayToTokenValue(sharesWithdrawable);
 
