@@ -1,7 +1,7 @@
 {
   "networks": {
     "42": {
-      "address": "0x7B1454a38aC9329115d67dd502f9cb39f3f666a6"
+      "address": "0xF39f128fCdB876A48F2fba295bF2e67d963058Db"
     }
   },
   "abi": [
@@ -467,6 +467,20 @@
     },
     {
       "inputs": [],
+      "name": "percentDecimals",
+      "outputs": [
+        {
+          "internalType": "uint16",
+          "name": "",
+          "type": "uint16"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function",
+      "constant": true
+    },
+    {
+      "inputs": [],
       "name": "poolFunds",
       "outputs": [
         {
@@ -659,7 +673,13 @@
         }
       ],
       "name": "enterPool",
-      "outputs": [],
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
       "stateMutability": "nonpayable",
       "type": "function"
     },
@@ -672,7 +692,13 @@
         }
       ],
       "name": "exitPool",
-      "outputs": [],
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
       "stateMutability": "nonpayable",
       "type": "function"
     },
