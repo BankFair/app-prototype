@@ -50,20 +50,18 @@ function Balances(props) {
       </Card>
       <Modal
         open={depositModalOpen}
-        onClose={handleCloseDepositModal}
         backdrop="static"
       >
         <Box sx={modalStyle}>
-          <DepositStepper closeHandler={handleCloseDepositModal} />
+          <DepositStepper closeHandler={handleCloseDepositModal} data={props.data} />
         </Box>
       </Modal>
       <Modal
         open={withdrawModalOpen}
-        onClose={handleCloseWithdrawModal}
         backdrop="static"
       >
         <Box sx={modalStyle}>
-          <WithdrawalStepper closeHandler={handleCloseWithdrawModal} />
+          <WithdrawalStepper closeHandler={handleCloseWithdrawModal} data={props.data} />
         </Box>
       </Modal>
     </>

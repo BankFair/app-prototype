@@ -30,6 +30,7 @@ class App extends Component {
     tokenSymbol: null,
     tokenDecimals: 0,
 
+    bankContractAddress: null,
     bankContract: null,
     manager: null,
 
@@ -179,8 +180,8 @@ class App extends Component {
       if (networkId !== config.APP_NETWORK_ID) {
         return;
       }
-
-      const bankContract = new web3.eth.Contract(BankFairPool.abi, BankFairPool.networks[config.APP_NETWORK_ID].address);
+      const bankContractAddress = BankFairPool.networks[config.APP_NETWORK_ID].address;
+      const bankContract = new web3.eth.Contract(BankFairPool.abi, bankContractAddress);
       const tokenAddress = await bankContract.methods.token().call();
       const tokenContract = new web3.eth.Contract(ERC20.abi, tokenAddress);
       const tokenSymbol = await tokenContract.methods.symbol().call();
@@ -188,7 +189,15 @@ class App extends Component {
 
       const manager = await bankContract.methods.manager().call();
 
-      await this.setState({ manager, bankContract, tokenContract, tokenAddress, tokenSymbol, tokenDecimals });
+      await this.setState({
+        manager,
+        bankContractAddress,
+        bankContract,
+        tokenContract,
+        tokenAddress,
+        tokenSymbol,
+        tokenDecimals,
+      });
     } catch (error) {
       console.error(error);
     }
