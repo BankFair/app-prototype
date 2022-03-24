@@ -176,7 +176,7 @@ export default function DepositStepper(props) {
             {
               depositTxError
                 ?
-                <Typography sx={{ mt: 2, mb: 1, alignSelf: 'center' }} color='error'>
+                <Typography sx={{ mt: 10, mb: 1, alignSelf: 'center' }} color='error'>
                   {depositTxError}
                 </Typography>
                 : isNextLoading
