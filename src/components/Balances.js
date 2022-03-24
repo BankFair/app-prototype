@@ -42,10 +42,10 @@ function Balances(props) {
         <Grid container spacing={1} sx={{ ml: 1, }}>
           <GridRow label="Pool shares" value={props.data.poolShares} lcWidth="6" rcWidth="6" />
           <GridRow label="Current token value" value={props.data.poolSharesWorth ? props.data.poolSharesWorth + " " + props.data.tokenSymbol : ""} lcWidth="6" rcWidth="6" />
-          {props.data.isLoggedIn && <Toolbar spacing={1} sx={{ ml: "auto", mr: 1 }}>
+          <Toolbar spacing={1} sx={{ ml: "auto", mr: 1 }}>
             <Button sx={{ mr: 1 }} className="action-button" variant="outlined" color="success" onClick={handleOpenDepositModal}>Deposit</Button>
             <Button className="action-button" variant="outlined" color="error" onClick={handleOpenWithdrawModal}>Withdraw</Button>
-          </Toolbar>}
+          </Toolbar>
         </Grid>
       </Card>
       <Modal
