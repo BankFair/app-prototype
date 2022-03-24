@@ -80,7 +80,7 @@ export default function WithdrawalStepper(props) {
               return;
             }
             setPoolLiqudity(converter.tokenToDisplayValue(poolLiqudityRaw, tokenDecimals, 2));
-            bankContract.methods.tokensToShares(BigNumber.min(sharesWorthRaw, poolLiqudityRaw)).call((error, sharesWithdrawableRaw) => {
+            bankContract.methods.tokensToShares(BigNumber.min(sharesWorthRaw, poolLiqudityRaw).integerValue().toString(10)).call((error, sharesWithdrawableRaw) => {
               if (error) {
                 return;
               }
