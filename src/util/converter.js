@@ -1,7 +1,8 @@
 import BigNumber from "bignumber.js";
 
 var BigNumberRD = BigNumber.clone({ ROUNDING_MODE: 1 });
-let BN0 = BigNumberRD.clone({ DECIMAL_PLACES: 0 });
+export var BigNumber2RD = BigNumberRD.clone({ DECIMAL_PLACES: 2 });
+var BN0 = BigNumberRD.clone({ DECIMAL_PLACES: 0 });
 
 function tokenToDisplayValue(valueStr, valueDecimals, displayDecimals) {
   let BN2 = BigNumberRD.clone({ DECIMAL_PLACES: displayDecimals });
@@ -12,7 +13,7 @@ function tokenToDisplayValue(valueStr, valueDecimals, displayDecimals) {
 
 function displayToTokenValue(valueStr, valueDecimals) {
   let divisor = new BigNumber(10).exponentiatedBy(new BigNumber(valueDecimals));
-  return new BigNumberRD(valueStr.replaceAll(',', '')).multipliedBy(divisor).integerValue();
+  return new BigNumberRD(valueStr.replaceAll(',', '')).multipliedBy(divisor).integerValue().toString(10);
 }
 
 function percentToDisplayValue(valueStr, valueDecimals, displayDecimals) {

@@ -30,6 +30,7 @@ class App extends Component {
     tokenSymbol: null,
     tokenDecimals: 0,
 
+    bankContractAddress: null,
     bankContract: null,
     manager: null,
 
@@ -54,7 +55,7 @@ class App extends Component {
   };
 
   componentDidMount = async () => {
-    
+
     try {
       if (window.ethereum) {
         const web3 = new Web3(window.ethereum);
@@ -113,14 +114,16 @@ class App extends Component {
         return;
       }
 
-      this.setState({ isLoggedIn, walletAddress, selectedNetworkId: networkId });
+      await this.setState({ isLoggedIn, walletAddress, selectedNetworkId: networkId });
       localStorage.setItem("isLoggedIn", true);
       localStorage.setItem("walletAddress", walletAddress);
     } catch (error) {
       console.error(error);
     }
+
+    this.postLoginActions();
   }
-  
+
   logOut = async () => {
     if (!this.state.isLoggedIn) {
       return;
@@ -128,12 +131,12 @@ class App extends Component {
 
     localStorage.setItem("isLoggedIn", false);
     localStorage.removeItem("walletAddress");
-    
+
     //FIXME add fields to reset on logout
-    this.setState({ 
+    this.setState({
       isLoggedIn: false,
       walletAddress: null,
-      
+
       poolShares: "0",
       poolSharesWorth: "0",
     });
@@ -177,8 +180,8 @@ class App extends Component {
       if (networkId !== config.APP_NETWORK_ID) {
         return;
       }
-
-      const bankContract = new web3.eth.Contract(BankFairPool.abi, BankFairPool.networks[config.APP_NETWORK_ID].address);
+      const bankContractAddress = BankFairPool.networks[config.APP_NETWORK_ID].address;
+      const bankContract = new web3.eth.Contract(BankFairPool.abi, bankContractAddress);
       const tokenAddress = await bankContract.methods.token().call();
       const tokenContract = new web3.eth.Contract(ERC20.abi, tokenAddress);
       const tokenSymbol = await tokenContract.methods.symbol().call();
@@ -186,7 +189,15 @@ class App extends Component {
 
       const manager = await bankContract.methods.manager().call();
 
-      await this.setState({ manager, bankContract, tokenContract, tokenAddress, tokenSymbol, tokenDecimals });
+      await this.setState({
+        manager,
+        bankContractAddress,
+        bankContract,
+        tokenContract,
+        tokenAddress,
+        tokenSymbol,
+        tokenDecimals,
+      });
     } catch (error) {
       console.error(error);
     }
@@ -222,50 +233,50 @@ class App extends Component {
     }
 
     bankContract.methods.tokenBalance().call((error, value) => {
-      if(!error) {
-        this.setState({contractTokenBalance: converter.tokenToDisplayValue(value, tokenDecimals, 2)});
+      if (!error) {
+        this.setState({ contractTokenBalance: converter.tokenToDisplayValue(value, tokenDecimals, 2) });
       }
     });
 
     bankContract.methods.poolLiqudity().call((error, value) => {
-      if(!error) {
-        this.setState({contractPoolLiqudity: converter.tokenToDisplayValue(value, tokenDecimals, 2)});
+      if (!error) {
+        this.setState({ contractPoolLiqudity: converter.tokenToDisplayValue(value, tokenDecimals, 2) });
       }
     });
 
     bankContract.methods.loanFundsPendingWithdrawal().call((error, value) => {
-      if(!error) {
-        this.setState({loanFundsPendingWithdrawal: converter.tokenToDisplayValue(value, tokenDecimals, 2)});
+      if (!error) {
+        this.setState({ loanFundsPendingWithdrawal: converter.tokenToDisplayValue(value, tokenDecimals, 2) });
       }
     });
 
     bankContract.methods.borrowedFunds().call((error, value) => {
-      if(!error) {
-        this.setState({contractBorrowedFunds: converter.tokenToDisplayValue(value, tokenDecimals, 2)});
+      if (!error) {
+        this.setState({ contractBorrowedFunds: converter.tokenToDisplayValue(value, tokenDecimals, 2) });
       }
     });
 
     bankContract.methods.poolFunds().call((error, value) => {
-      if(!error) {
-        this.setState({contractPoolFunds: converter.tokenToDisplayValue(value, tokenDecimals, 2)});
+      if (!error) {
+        this.setState({ contractPoolFunds: converter.tokenToDisplayValue(value, tokenDecimals, 2) });
       }
     });
 
     bankContract.methods.totalPoolShares().call((error, value) => {
-      if(!error) {
-        this.setState({totalPoolShares: converter.tokenToDisplayValue(value, tokenDecimals, 2)});
+      if (!error) {
+        this.setState({ totalPoolShares: converter.tokenToDisplayValue(value, tokenDecimals, 2) });
       }
     });
 
     bankContract.methods.sharesStaked().call((error, value) => {
-      if(!error) {
-        this.setState({sharesStaked: converter.tokenToDisplayValue(value, tokenDecimals, 2)});
+      if (!error) {
+        this.setState({ sharesStaked: converter.tokenToDisplayValue(value, tokenDecimals, 2) });
       }
     });
 
     bankContract.methods.sharesStakedUnlocked().call((error, value) => {
-      if(!error) {
-        this.setState({sharesStakedUnlocked: converter.tokenToDisplayValue(value, tokenDecimals, 2)});
+      if (!error) {
+        this.setState({ sharesStakedUnlocked: converter.tokenToDisplayValue(value, tokenDecimals, 2) });
       }
     });
   }
@@ -277,32 +288,32 @@ class App extends Component {
     }
 
     bankContract.methods.defaultAPR().call((error, value) => {
-      if(!error) {
-        this.setState({defaultAPR: converter.percentToDisplayValue(value, percentDecimals, 2)});
+      if (!error) {
+        this.setState({ defaultAPR: converter.percentToDisplayValue(value, percentDecimals, 2) });
       }
     });
 
     bankContract.methods.defaultLateFeePercent().call((error, value) => {
-      if(!error) {
-        this.setState({defaultLateFeePercent: converter.percentToDisplayValue(value, percentDecimals, 2)});
+      if (!error) {
+        this.setState({ defaultLateFeePercent: converter.percentToDisplayValue(value, percentDecimals, 2) });
       }
     });
 
     bankContract.methods.minAmount().call((error, value) => {
-      if(!error) {
-        this.setState({minAmount: converter.tokenToDisplayValue(value, tokenDecimals, 2)});
+      if (!error) {
+        this.setState({ minAmount: converter.tokenToDisplayValue(value, tokenDecimals, 2) });
       }
     });
 
     bankContract.methods.minDuration().call((error, value) => {
-      if(!error) {
-        this.setState({minDuration: converter.secondsToDays(value)});
+      if (!error) {
+        this.setState({ minDuration: converter.secondsToDays(value) });
       }
     });
 
     bankContract.methods.maxDuration().call((error, value) => {
-      if(!error) {
-        this.setState({maxDuration: converter.secondsToDays(value)});
+      if (!error) {
+        this.setState({ maxDuration: converter.secondsToDays(value) });
       }
     });
   }
@@ -322,7 +333,12 @@ class App extends Component {
             isWrongNetwork={this.state.selectedNetworkId !== config.APP_NETWORK_ID}
           />
           <Stack className="padding_0_5_rem" spacing={2}>
-            <Balances data={this.state} />
+            {
+              this.state.isLoggedIn &&
+              <>
+                <Balances data={this.state} />
+              </>
+            }
             <StatsPanel data={this.state} />
           </Stack>
         </Box>
