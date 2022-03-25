@@ -15,7 +15,6 @@ import {
 } from '@mui/material';
 import GridRow from "./GridRow";
 import converter, { BigNumber2RD } from "../util/converter";
-import BigNumber from 'bignumber.js';
 
 const NumberFormatCustom = React.forwardRef(function NumberFormatCustom(props, ref) {
   const { onChange, ...other } = props;
@@ -40,66 +39,47 @@ const NumberFormatCustom = React.forwardRef(function NumberFormatCustom(props, r
   );
 });
 
-const steps = ['Enter Withdrawal Amount', 'Request Withdrawal'];
+const steps = ['Enter Amount to Unstake', 'Submit'];
 
-export default function WithdrawalStepper(props) {
+export default function UnstakeStepper(props) {
+
   const [activeStep, setActiveStep] = React.useState(0);
   const [isNextLoading, setNextLoading] = React.useState(false);
 
-  const [unlockedShares, setUnlockedShares] = React.useState(0);
-  const [poolLiqudity, setPoolLiqudity] = React.useState(0);
-  const [sharesWithdrawable, setSharesWithdrawable] = React.useState(0);
-  const [sharesWithdrawableBN, setSharesWithdrawableBN] = React.useState(new BigNumber2RD(0));
-  const [sharesWithdrawableWorth, setSharesWithdrawableWorth] = React.useState(0);
+  const [amountTransactable, setAmountTransactable] = React.useState(0);
+  const [amountTransactableBN, setAmountTransactableBN] = React.useState(new BigNumber2RD(0));
+  const [amountTransactableWorth, setAmountTransactableWorth] = React.useState(0);
 
-  const [withdrawAmount, setWithdrawAmount] = React.useState(null);
-  const [withdrawAmountBN, setWithdrawAmountBN] = React.useState(new BigNumber2RD(0));
-  const [estimatedTokens, setEstimatedTokens] = React.useState(null);
-  const [withdrawalReceipt, setWithdrawalReceipt] = React.useState(null);
-  const [withdrawalTxError, setWithdrawalTxError] = React.useState(null);
-  const [amountWithdrawn, setAmountWithdrawn] = React.useState(0);
+  const [inputAmount, setInputAmount] = React.useState(null);
+  const [inputAmountBN, setInputAmountBN] = React.useState(new BigNumber2RD(0));
+  const [inputAmountWorth, setInputAmountWorth] = React.useState(null);
+
+  const [txReceipt, setTxReceipt] = React.useState(null);
+  const [txError, setTxError] = React.useState(null);
+  const [outcomeAmount, setOutcomeAmount] = React.useState(null);
 
   useEffect(() => {
-    const { isLoggedIn, walletAddress, bankContract, tokenDecimals } = props.data;
+    const { isLoggedIn, bankContract, tokenDecimals } = props.data;
     if (!isLoggedIn || !bankContract) {
       return;
     }
 
     try {
-
-      bankContract.methods.unlockedSharesOf(walletAddress).call((error, unlockedSharesRaw) => {
+      bankContract.methods.sharesStakedUnlocked().call((error, sharesUnstakableRaw) => {
         if (error) {
           return;
         }
-        setUnlockedShares(converter.tokenToDisplayValue(unlockedSharesRaw, tokenDecimals, 2));
-        bankContract.methods.sharesToTokens(unlockedSharesRaw).call((error, sharesWorthRaw) => {
+        const amountTransactable = converter.tokenToDisplayValue(sharesUnstakableRaw, tokenDecimals, 2);
+
+        setAmountTransactable(amountTransactable);
+        setAmountTransactableBN(new BigNumber2RD(amountTransactable.replaceAll(',', '')));
+
+        const amountTransactableTokenVal = converter.displayToTokenValue(amountTransactable, tokenDecimals);
+        bankContract.methods.sharesToTokens(amountTransactableTokenVal).call((error, amountTransactableWorthRaw) => {
           if (error) {
             return;
           }
-          bankContract.methods.poolLiqudity().call((error, poolLiqudityRaw) => {
-            if (error) {
-              return;
-            }
-            setPoolLiqudity(converter.tokenToDisplayValue(poolLiqudityRaw, tokenDecimals, 2));
-            bankContract.methods.tokensToShares(BigNumber.min(sharesWorthRaw, poolLiqudityRaw).integerValue().toString(10)).call((error, sharesWithdrawableRaw) => {
-              if (error) {
-                return;
-              }
-
-              const sharesWithdrawable = converter.tokenToDisplayValue(sharesWithdrawableRaw, tokenDecimals, 2);
-              setSharesWithdrawable(sharesWithdrawable);
-              setSharesWithdrawableBN(new BigNumber2RD(sharesWithdrawable.replaceAll(',', '')));
-
-              const sharesWithdrawableTokenVal = converter.displayToTokenValue(sharesWithdrawable, tokenDecimals);
-
-              bankContract.methods.sharesToTokens(sharesWithdrawableTokenVal).call((error, tokensWithdrawable) => {
-                if (error) {
-                  return;
-                }
-                setSharesWithdrawableWorth(converter.tokenToDisplayValue(tokensWithdrawable, tokenDecimals, 2));
-              });
-            });
-          });
+          setAmountTransactableWorth(converter.tokenToDisplayValue(amountTransactableWorthRaw, tokenDecimals, 2));
         });
       });
     } catch (error) {
@@ -114,20 +94,20 @@ export default function WithdrawalStepper(props) {
     setActiveStep(nextStep);
 
     switch (nextStep) {
-      case 1: estimateTokens(); break;
-      case 2: submitWithdrawal(); break;
+      case 1: estimateInputWorth(); break;
+      case 2: submit(); break;
       default: setNextLoading(false);
     }
   };
 
-  const estimateTokens = async () => {
+  const estimateInputWorth = async () => {
     const { bankContract, tokenDecimals } = props.data;
 
     try {
-      const shareAmount = converter.displayToTokenValue(withdrawAmount, tokenDecimals);
+      const shareAmount = converter.displayToTokenValue(inputAmount, tokenDecimals);
       await bankContract.methods.sharesToTokens(shareAmount).call((error, tokens) => {
         if (!error) {
-          setEstimatedTokens(converter.tokenToDisplayValue(tokens, tokenDecimals, 2));
+          setInputAmountWorth(converter.tokenToDisplayValue(tokens, tokenDecimals, 2));
         }
       });
     } catch (error) {
@@ -137,37 +117,37 @@ export default function WithdrawalStepper(props) {
     setNextLoading(false);
   }
 
-  const submitWithdrawal = async () => {
+  const submit = async () => {
     const { walletAddress, bankContract, tokenDecimals } = props.data;
 
     try {
-      const shareAmount = converter.displayToTokenValue(withdrawAmount, tokenDecimals);
-      await bankContract.methods.exitPool(shareAmount)
+      const shareAmount = converter.displayToTokenValue(inputAmount, tokenDecimals);
+      await bankContract.methods.unstake(shareAmount)
         .send({ from: walletAddress })
         .on('receipt', function (receipt) {
-          setWithdrawalReceipt(receipt);
+          setTxReceipt(receipt);
           setNextLoading(false);
 
-          if (receipt.events && receipt.events[0]) {
-            setAmountWithdrawn(converter.tokenToDisplayValue(new BigNumber(receipt.events[0].raw.data).integerValue().toString(10), tokenDecimals, 2));
+          if (receipt.status && receipt.status === true) {
+            setOutcomeAmount(inputAmount);
           }
         })
         .on('error', function (error, receipt) {
-          setWithdrawalTxError(error?.message);
+          setTxError(error?.message);
           setNextLoading(false);
         });
     } catch (error) {
       console.log(error);
       if (error.message) {
-        setWithdrawalTxError(error?.message);
+        setTxError(error?.message);
       }
       setNextLoading(false);
     }
   }
 
   const handleAmountInput = (event) => {
-    setWithdrawAmount(event.target.value);
-    setWithdrawAmountBN(new BigNumber2RD(event.target.value));
+    setInputAmount(event.target.value);
+    setInputAmountBN(new BigNumber2RD(event.target.value));
   };
 
   return (
@@ -187,25 +167,25 @@ export default function WithdrawalStepper(props) {
         <>
           <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'left', minHeight: '8rem' }}>
             {
-              withdrawalTxError
+              txError
                 ?
                 <Typography sx={{ mt: 10, mb: 1, alignSelf: 'center' }} color='error'>
-                  {withdrawalTxError}
+                  {txError}
                 </Typography>
                 : isNextLoading
                   ?
-                  <CircularProgress sx={{ mt: '2.5rem', mb: 2, alignSelf: 'center' }} />
-                  : withdrawalReceipt && <>
+                  <CircularProgress sx={{ mt: 2, mb: 2, alignSelf: 'center' }} />
+                  : txReceipt && <>
                     <Typography sx={{ mt: 2, mb: 1, alignSelf: 'center' }} >
-                      Withdrawal Request Submitted
+                      Unstake Shares Request Submitted
                     </Typography>
                     <Grid container spacing={1} sx={{ ml: 1, }}>
-                      <GridRow label="Amount Withdrawn" value={amountWithdrawn + " " + props.data.tokenSymbol} lcWidth="3" rcWidth="9" />
+                      {outcomeAmount && <GridRow label="Amount unstaked" value={outcomeAmount + " Pool Shares"} lcWidth="3" rcWidth="9" />}
                       <Grid item xs={3}>
                         <Typography>Transaction</Typography>
                       </Grid>
                       <Grid item xs={9}>
-                        <Link href={"https://kovan.etherscan.io/tx/" + withdrawalReceipt.transactionHash} target="_blank">
+                        <Link href={"https://kovan.etherscan.io/tx/" + txReceipt.transactionHash} target="_blank">
                           View on Etherscan
                         </Link>
                       </Grid>
@@ -226,9 +206,9 @@ export default function WithdrawalStepper(props) {
                 "0":
                   <>
                     <TextField sx={{ mt: 2, mb: 1, input: { textAlign: "right" } }}
-                      label="Withdraw Amount"
+                      label="Unstake Amount"
                       variant="standard"
-                      value={withdrawAmount}
+                      value={inputAmount}
                       onChange={handleAmountInput}
                       InputProps={{
                         endAdornment: <InputAdornment position="end">Pool Shares</InputAdornment>,
@@ -236,31 +216,20 @@ export default function WithdrawalStepper(props) {
                       }}
                     />
                     <Typography sx={{ mt: 0.5, mb: 0.2, ml: 'auto' }} color="text.secondary">
-                      Withdrawable {sharesWithdrawable} Pool Shares
+                      Unstakeable {amountTransactable} Pool Shares
                     </Typography>
                     <Typography sx={{ mt: 0.2, mb: 0.2, ml: 'auto' }} color="text.secondary">
-                      Estimated token value {sharesWithdrawableWorth} {props.data.tokenSymbol}
+                      Estimated token value {amountTransactableWorth} {props.data.tokenSymbol}
                     </Typography>
-
-                    {/* <Typography sx={{ mt: 0.2, mb: 2, ml: 'auto' }} color="text.secondary">
-                      Pool Liqudity {poolLiqudity} {props.data.tokenSymbol}
-                    </Typography>
-                  
-                    <Typography sx={{ mt: 2, mb: 0.2, ml: 'auto' }} color="text.secondary">
-                      Your pool shares {props.data.poolShares}
-                    </Typography>
-                    <Typography sx={{ mt: 0.2, mb: 0.2, ml: 'auto' }} color="text.secondary">
-                      Your unlocked shares {unlockedShares}
-                    </Typography> */}
                   </>,
                 "1":
                   <>
                     <Typography sx={{ mt: 2, mb: 1, alignSelf: 'center' }} color="text.secondary">
-                      Withdraw {withdrawAmount} Pool Shares
+                      Unstake {inputAmount} Pool Shares
                     </Typography>
                     <Grid container spacing={1} sx={{ ml: 1, }}>
-                      <GridRow label="Shares" value={withdrawAmount} lcWidth="3" rcWidth="9" />
-                      <GridRow label="Estimated funds to be received" value={estimatedTokens + " " + props.data.tokenSymbol} lcWidth="3" rcWidth="9" />
+                      <GridRow label="Shares" value={inputAmount} lcWidth="3" rcWidth="9" />
+                      <GridRow label="Estimated token value" value={inputAmountWorth + " " + props.data.tokenSymbol} lcWidth="3" rcWidth="9" />
                     </Grid>
                   </>
               }[activeStep]
@@ -278,7 +247,7 @@ export default function WithdrawalStepper(props) {
             <Box sx={{ flex: '1 1 auto' }} />
 
             <Button onClick={handleNext}
-              disabled={isNextLoading || (activeStep === 0 && (withdrawAmountBN.comparedTo(0) === 0 || withdrawAmountBN.comparedTo(sharesWithdrawableBN) > 0))}>
+              disabled={isNextLoading || (activeStep === 0 && (inputAmountBN.comparedTo(0) === 0 || inputAmountBN.comparedTo(amountTransactableBN) > 0))}>
               {isNextLoading ? <CircularProgress size={18} /> : activeStep === steps.length - 1 ? 'Submit' : 'Next'}
             </Button>
           </Box>

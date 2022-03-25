@@ -6,6 +6,7 @@ import {
 import CustomAppBar from "./components/CustomAppBar";
 import ProblemBanner from "./components/ProblemBanner";
 import Balances from "./components/Balances";
+import StakedAssetsPanel from "./components/StakedAssetsPanel";
 import StatsPanel from "./components/StatsPanel";
 
 import Web3 from "web3";
@@ -73,6 +74,7 @@ class App extends Component {
     await this.loadContracts();
     this.postLoginActions();
     this.loadStats();
+    this.loadStakedShares();
     this.loadLoanParams();
   }
 
@@ -86,6 +88,10 @@ class App extends Component {
   balanceUpdateHandler = async () => {
     this.postLoginActions();
     this.loadStats();
+  }
+
+  stakeUpdateHandler = async () => {
+    this.loadStakedShares();
   }
 
   logIn = async () => {
@@ -231,6 +237,30 @@ class App extends Component {
     });
   }
 
+  loadStakedShares = async () => {
+    const { walletAddress, bankContract, tokenDecimals } = this.state;
+
+    try {
+      bankContract.methods.sharesStaked().call((error, sharesStaked) => {
+        if (error) {
+          return;
+        }
+        bankContract.methods.sharesToTokens(sharesStaked).call((error, sharesStakedWorth) => {
+          if (error) {
+            return;
+          }
+          this.setState({
+            sharesStaked: converter.tokenToDisplayValue(sharesStaked, tokenDecimals, 2),
+            sharesStakedWorth: converter.tokenToDisplayValue(sharesStakedWorth, tokenDecimals, 2)
+          });
+        });
+      });
+
+    } catch (error) {
+      console.log(error);
+    }
+  }
+
   loadStats = async () => {
     const { web3, walletAddress, bankContract, tokenDecimals, percentDecimals } = this.state;
     if (!web3) {
@@ -273,11 +303,13 @@ class App extends Component {
       }
     });
 
+    /*
     bankContract.methods.sharesStaked().call((error, value) => {
       if (!error) {
         this.setState({ sharesStaked: converter.tokenToDisplayValue(value, tokenDecimals, 2) });
       }
     });
+    */
 
     bankContract.methods.sharesStakedUnlocked().call((error, value) => {
       if (!error) {
@@ -344,6 +376,7 @@ class App extends Component {
                 <Balances data={this.state} onBalanceUpdate={this.balanceUpdateHandler} />
               </>
             }
+            <StakedAssetsPanel data={this.state} onTransact={this.stakeUpdateHandler} />
             <StatsPanel data={this.state} />
           </Stack>
         </Box>
