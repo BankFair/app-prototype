@@ -270,7 +270,6 @@ export default function WithdrawalStepper(props) {
           <Box sx={{ display: 'flex', flexDirection: 'row', pt: 2, mb: '0' }}>
             <Button
               color="error"
-              // disabled={activeStep === steps.length - 1}
               onClick={props.closeHandler}
               sx={{ mr: 1 }}
             >
