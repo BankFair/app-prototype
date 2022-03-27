@@ -6,6 +6,7 @@ import {
 import CustomAppBar from "./components/CustomAppBar";
 import ProblemBanner from "./components/ProblemBanner";
 import Balances from "./components/Balances";
+import LoansPanel from "./components/LoansPanel";
 import StakedAssetsPanel from "./components/StakedAssetsPanel";
 import StatsPanel from "./components/StatsPanel";
 
@@ -92,6 +93,10 @@ class App extends Component {
 
   stakeUpdateHandler = async () => {
     this.loadStakedShares();
+  }
+
+  loanUpdateHandler = async () => {
+    this.loadStats();
   }
 
   logIn = async () => {
@@ -377,6 +382,7 @@ class App extends Component {
               </>
             }
             <StakedAssetsPanel data={this.state} onTransact={this.stakeUpdateHandler} />
+            <LoansPanel data={this.state} onTransact={this.loanUpdateHandler} />
             <StatsPanel data={this.state} />
           </Stack>
         </Box>
