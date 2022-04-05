@@ -39,28 +39,6 @@ const NumberFormatCustomDecimal = React.forwardRef(function NumberFormatCustom(p
   );
 });
 
-const NumberFormatCustomInt = React.forwardRef(function NumberFormatCustom(props, ref) {
-  const { onChange, ...other } = props;
-
-  return (
-    <NumberFormat
-      {...other}
-      getInputRef={ref}
-      onValueChange={(values) => {
-        onChange({
-          target: {
-            name: props.name,
-            value: values.value,
-          },
-        });
-      }}
-      isNumericString
-      allowNegative={false}
-      decimalScale={0}
-    />
-  );
-});
-
 const steps = ['Enter Details', 'Review and Submit'];
 
 const DAY_SECONDS = 86400;
@@ -131,7 +109,6 @@ export default function LoanApplicationStepper(props) {
     setActiveStep(nextStep);
 
     switch (nextStep) {
-      // case 1: estimateLoanInterestAmount(); break; // TODO estimate amount due by the loan end date
       case 2: submit(); break;
       default: setNextLoading(false);
     }
@@ -207,7 +184,7 @@ export default function LoanApplicationStepper(props) {
                       Loan Application Submitted
                     </Typography>
                     <Grid container spacing={1} sx={{ ml: 1, }}>
-                      {<GridRow label="Loan ID: " value={loanId} lcWidth="3" rcWidth="9" />}
+                      {loanId && <GridRow label="Loan ID: " value={loanId} lcWidth="3" rcWidth="9" />}
                       <Grid item xs={3}>
                         <Typography>Transaction</Typography>
                       </Grid>
@@ -270,7 +247,7 @@ export default function LoanApplicationStepper(props) {
                     <Grid container spacing={1} sx={{ ml: 1, }}>
                       <GridRow label="Borrower" value={props.data.walletAddress} lcWidth="4" rcWidth="8" />
                       <GridRow label="Amount" value={inputAmount + " " + props.data.tokenSymbol} lcWidth="4" rcWidth="8" />
-                      <GridRow label="Duration" value={inputDuration + " " + "day(s)"} lcWidth="4" rcWidth="8" />
+                      <GridRow label="Duration" value={inputDuration + " day(s)"} lcWidth="4" rcWidth="8" />
                       <GridRow label="APR" value={props.data.defaultAPR + "%"} lcWidth="4" rcWidth="8" />
                       <GridRow label="Late Payment APR Increase" value={props.data.defaultLateFeePercent + "%"} lcWidth="4" rcWidth="8" />
                     </Grid>

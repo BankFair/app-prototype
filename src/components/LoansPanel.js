@@ -16,6 +16,12 @@ import GridRow from "./GridRow";
 
 import LoanApplicationStepper from "./LoanApplicationStepper";
 import converter, { BigNumber2RD } from "../util/converter";
+import ApproveLoanStepper from "./ApproveLoanStepper";
+import DenyLoanStepper from "./DenyLoanStepper";
+import CancelLoanStepper from "./CancelLoanStepper";
+import TakeLoanStepper from "./TakeLoanStepper";
+import RepayLoanStepper from "./RepayLoanStepper";
+import DefaultLoanStepper from "./DefaultLoanStepper";
 
 const modalStyle = {
   position: 'absolute',
@@ -33,7 +39,7 @@ const LoanStatus = {
   "1": "DENIED",
   "2": "APPROVED",
   "3": "CANCELLED",
-  "4": "FUNDS_WITHDRAWN",
+  "4": "FUNDS WITHDRAWN",
   "5": "REPAID",
   "6": "DEFAULTED"
 }
@@ -51,7 +57,6 @@ export default function Loans(props) {
   const [inputLoanSearch, setInputLoanSearch] = React.useState("");
   const [isLoading, setLoading] = React.useState(false);
   const [isLoanFound, setLoanFound] = React.useState(false);
-  const [notFoundLoanId, setNotFoundLoanId] = React.useState(null);
 
   const [loanApplication, setLoanApplication] = React.useState({
     id: null,
@@ -79,9 +84,64 @@ export default function Loans(props) {
     props.onTransact();
   }
 
+  const [approveModalOpen, setApproveModalOpen] = React.useState(false);
+  const handleOpenApproveModal = () => setApproveModalOpen(true);
+  const handleCloseApproveModal = () => {
+    setApproveModalOpen(false);
+    if (loanApplication) {
+      loadLoan(loanApplication.id);
+    }
+  }
+
+  const [denyModalOpen, setDenyModalOpen] = React.useState(false);
+  const handleOpenDenyModal = () => setDenyModalOpen(true);
+  const handleCloseDenyModal = () => {
+    setDenyModalOpen(false);
+    if (loanApplication) {
+      loadLoan(loanApplication.id);
+    }
+  }
+
+  const [cancelModalOpen, setCancelModalOpen] = React.useState(false);
+  const handleOpenCancelModal = () => setCancelModalOpen(true);
+  const handleCloseCancelModal = () => {
+    setCancelModalOpen(false);
+    if (loanApplication) {
+      loadLoan(loanApplication.id);
+    }
+  }
+
+  const [takeLoanModalOpen, setTakeLoanModalOpen] = React.useState(false);
+  const handleOpenTakeLoanModal = () => setTakeLoanModalOpen(true);
+  const handleCloseTakeLoanModal = () => {
+    setTakeLoanModalOpen(false);
+    if (loanApplication) {
+      loadLoan(loanApplication.id);
+    }
+  }
+
+  const [defaultLoanModalOpen, setDefaultLoanModalOpen] = React.useState(false);
+  const handleOpenDefaultLoanModal = () => setDefaultLoanModalOpen(true);
+  const handleCloseDefaultLoanModal = () => {
+    setDefaultLoanModalOpen(false);
+    if (loanApplication) {
+      loadLoan(loanApplication.id);
+    }
+  }
+
+  const [repayModalOpen, setRepayModalOpen] = React.useState(false);
+  const handleOpenRepayModal = () => setRepayModalOpen(true);
+  const handleCloseRepayModal = () => {
+    setRepayModalOpen(false);
+    if (loanApplication) {
+      loadLoan(loanApplication.id);
+    }
+  }
+
   useEffect(() => {
     const { isLoggedIn, walletAddress, bankContract } = props.data;
     if (!isLoggedIn || !bankContract) {
+      setRecentLoanId(null);
       return;
     }
 
@@ -107,7 +167,7 @@ export default function Loans(props) {
   };
 
   const recentLoanIdOfUser = async (wallet) => {
-    const { isLoggedIn, walletAddress, bankContract } = props.data;
+    const { isLoggedIn, bankContract } = props.data;
     if (!isLoggedIn || !bankContract) {
       return null;
     }
@@ -138,7 +198,6 @@ export default function Loans(props) {
   const loadLoan = (loanId) => {
     setLoading(true);
     setLoanFound(false);
-    setNotFoundLoanId(null);
 
     const { bankContract, tokenDecimals, percentDecimals } = props.data;
 
@@ -166,7 +225,7 @@ export default function Loans(props) {
                     baseAmountRepaid: converter.tokenToDisplayValue(loanDetailRaw.baseAmountRepaid, tokenDecimals, 2),
                     interestPaid: converter.tokenToDisplayValue(loanDetailRaw.interestPaid, tokenDecimals, 2),
                     approvedTime: new Date(parseInt(loanDetailRaw.grantedTime) * 1000).toUTCString(),
-                    lastPaymentTime: new Date(parseInt(loanDetailRaw.lastPaymentTime) * 1000).toUTCString(),
+                    lastPaymentTime: parseInt(loanDetailRaw.lastPaymentTime) > 0 ? new Date(parseInt(loanDetailRaw.lastPaymentTime) * 1000).toUTCString() : null,
                   });
                 } else {
                   setLoanDetail({});
@@ -178,7 +237,6 @@ export default function Loans(props) {
             });
           } else {
             setLoanFound(false);
-            setNotFoundLoanId(loanId);
 
             setLoanApplication({});
             setLoanDetail({});
@@ -208,7 +266,7 @@ export default function Loans(props) {
             value={inputLoanSearch}
             onChange={handleInput}
             InputProps={{
-              pattern: "/(^$)|(?:^0x[a-fA-F0-9]{0,40}$)|(?:^\d+$)/",
+              pattern: "/(^$)|(?:^0x[a-fA-F0-9]{0,40}$)|(?:^d+$)/",
             }}
           />
           <Button sx={{ ml: 1, mb: 0, mt: 'auto', width: '12rem' }} className="action-button" variant="outlined"
@@ -217,10 +275,13 @@ export default function Loans(props) {
           >
             Look up
           </Button>
-          <Button sx={{ ml: 1, mb: 0, mt: 'auto', width: '12rem' }} className="action-button" variant="outlined" color="success"
-            onClick={handleOpenApplyModal} disabled={hasOpenApplication}>
-            Apply for a Loan
-          </Button>
+          {
+            props.data.isLoggedIn && !(props.data.manager && props.data.manager === props.data.walletAddress) &&
+            <Button sx={{ ml: 1, mb: 0, mt: 'auto', width: '12rem' }} className="action-button" variant="outlined" color="success"
+              onClick={handleOpenApplyModal} disabled={hasOpenApplication}>
+              Apply for a Loan
+            </Button>
+          }
         </Box>
         {
           (recentLoanId && recentLoanId > 0)
@@ -247,11 +308,16 @@ export default function Loans(props) {
               <>
                 <Typography sx={{ mt: 2, mb: 1, ml: 2 }}>Loan Details</Typography>
                 <Grid container spacing={0} sx={{ ml: 2, mb: 1 }}>
-                  <GridRow label="Total amount repaid" value={loanDetail.totalAmountPaid + " " + props.data.tokenSymbol} lcWidth="6" rcWidth="6" />
-                  <GridRow label="Base amount repaid" value={loanDetail.baseAmountRepaid + " " + props.data.tokenSymbol} lcWidth="6" rcWidth="6" />
-                  <GridRow label="Interest paid" value={loanDetail.interestPaid + " " + props.data.tokenSymbol} lcWidth="6" rcWidth="6" />
                   <GridRow label="Approved time" value={loanDetail.approvedTime} lcWidth="6" rcWidth="6" />
-                  <GridRow label="Last payment time" value={loanDetail.lastPaymentTime} lcWidth="6" rcWidth="6" />
+                  {loanDetail.lastPaymentTime && <GridRow label="Last payment time" value={loanDetail.lastPaymentTime} lcWidth="6" rcWidth="6" />}
+                  {
+                    loanApplication.status === "FUNDS WITHDRAWN" &&
+                    <>
+                      <GridRow label="Total amount repaid" value={loanDetail.totalAmountPaid + " " + props.data.tokenSymbol} lcWidth="6" rcWidth="6" />
+                      <GridRow label="Base amount repaid" value={loanDetail.baseAmountRepaid + " " + props.data.tokenSymbol} lcWidth="6" rcWidth="6" />
+                      <GridRow label="Interest paid" value={loanDetail.interestPaid + " " + props.data.tokenSymbol} lcWidth="6" rcWidth="6" />
+                    </>
+                  }
                 </Grid>
               </>
             }
@@ -264,7 +330,7 @@ export default function Loans(props) {
         }
         {
           isLoading &&
-          <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'left'}}><CircularProgress sx={{ mt: 2, mb: 2,alignSelf: 'center' }} /></Box>
+          <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'left' }}><CircularProgress sx={{ mt: 2, mb: 2, alignSelf: 'center' }} /></Box>
         }
         {
           (isLoanFound && props.data.isLoggedIn && loanApplication.status !== "REPAID") &&
@@ -276,9 +342,9 @@ export default function Loans(props) {
                 {
                   {
                     "APPROVED":
-                      <Button sx={{ ml: 1 }} className="action-button" variant="outlined" color="error">Take Funds</Button>,
+                      <Button sx={{ ml: 1 }} className="action-button" variant="outlined" color="error" onClick={handleOpenTakeLoanModal} >Take Funds</Button>,
                     "FUNDS WITHDRAWN":
-                      <Button sx={{ ml: 1 }} className="action-button" variant="outlined" color="success">Repay</Button>,
+                      <Button sx={{ ml: 1 }} className="action-button" variant="outlined" color="success" onClick={handleOpenRepayModal} >Repay</Button>,
                   }[[loanApplication.status]]
                 }
               </Toolbar>
@@ -290,15 +356,15 @@ export default function Loans(props) {
                   {
                     "APPLIED":
                       <>
-                        <Button sx={{ ml: 1 }} className="action-button" variant="outlined" color="success" onClick={handleOpenApplyModal}>
+                        <Button sx={{ ml: 1 }} className="action-button" variant="outlined" color="success" onClick={handleOpenApproveModal}>
                           Approve
                         </Button>
-                        <Button sx={{ ml: 1 }} className="action-button" variant="outlined" color="error" >Deny</Button>
+                        <Button sx={{ ml: 1 }} className="action-button" variant="outlined" color="error"  onClick={handleOpenDenyModal}>Deny</Button>
                       </>,
                     "APPROVED":
-                      <Button sx={{ ml: 1 }} className="action-button" variant="outlined" color="error" >Cancel</Button>,
+                      <Button sx={{ ml: 1 }} className="action-button" variant="outlined" color="error" onClick={handleOpenCancelModal} >Cancel</Button>,
                     "FUNDS WITHDRAWN":
-                      <Button sx={{ ml: 1 }} className="action-button" variant="outlined" color="error" >Default</Button>
+                      <Button sx={{ ml: 1 }} className="action-button" variant="outlined" color="error" onClick={handleOpenDefaultLoanModal} >Default</Button>
                   }[loanApplication.status]
                 }
               </Toolbar>
@@ -312,6 +378,60 @@ export default function Loans(props) {
       >
         <Box sx={modalStyle}>
           <LoanApplicationStepper closeHandler={handleCloseApplyModal} data={props.data} />
+        </Box>
+      </Modal>
+
+      <Modal
+        open={approveModalOpen}
+        backdrop="static"
+      >
+        <Box sx={modalStyle}>
+          <ApproveLoanStepper closeHandler={handleCloseApproveModal} data={props.data} loanApplication={loanApplication} />
+        </Box>
+      </Modal>
+
+      <Modal
+        open={denyModalOpen}
+        backdrop="static"
+      >
+        <Box sx={modalStyle}>
+          <DenyLoanStepper closeHandler={handleCloseDenyModal} data={props.data} loanApplication={loanApplication} />
+        </Box>
+      </Modal>
+
+      <Modal
+        open={cancelModalOpen}
+        backdrop="static"
+      >
+        <Box sx={modalStyle}>
+          <CancelLoanStepper closeHandler={handleCloseCancelModal} data={props.data} loanApplication={loanApplication} loanDetail={loanDetail} />
+        </Box>
+      </Modal>
+
+      <Modal
+        open={takeLoanModalOpen}
+        backdrop="static"
+      >
+        <Box sx={modalStyle}>
+          <TakeLoanStepper closeHandler={handleCloseTakeLoanModal} data={props.data} loanApplication={loanApplication} loanDetail={loanDetail} />
+        </Box>
+      </Modal>
+
+      <Modal
+        open={repayModalOpen}
+        backdrop="static"
+      >
+        <Box sx={modalStyle}>
+          <RepayLoanStepper closeHandler={handleCloseRepayModal} data={props.data} loanId={loanApplication.id} />
+        </Box>
+      </Modal>
+
+      <Modal
+        open={defaultLoanModalOpen}
+        backdrop="static"
+      >
+        <Box sx={modalStyle}>
+          <DefaultLoanStepper closeHandler={handleCloseDefaultLoanModal} data={props.data} loanApplication={loanApplication} loanDetail={loanDetail} />
         </Box>
       </Modal>
     </>
