@@ -46,8 +46,6 @@ export default function WithdrawalStepper(props) {
   const [activeStep, setActiveStep] = React.useState(0);
   const [isNextLoading, setNextLoading] = React.useState(false);
 
-  const [unlockedShares, setUnlockedShares] = React.useState(0);
-  const [poolLiqudity, setPoolLiqudity] = React.useState(0);
   const [sharesWithdrawable, setSharesWithdrawable] = React.useState(0);
   const [sharesWithdrawableBN, setSharesWithdrawableBN] = React.useState(new BigNumber2RD(0));
   const [sharesWithdrawableWorth, setSharesWithdrawableWorth] = React.useState(0);
@@ -71,7 +69,6 @@ export default function WithdrawalStepper(props) {
         if (error) {
           return;
         }
-        setUnlockedShares(converter.tokenToDisplayValue(unlockedSharesRaw, tokenDecimals, 2));
         bankContract.methods.sharesToTokens(unlockedSharesRaw).call((error, sharesWorthRaw) => {
           if (error) {
             return;
@@ -80,7 +77,6 @@ export default function WithdrawalStepper(props) {
             if (error) {
               return;
             }
-            setPoolLiqudity(converter.tokenToDisplayValue(poolLiqudityRaw, tokenDecimals, 2));
             bankContract.methods.tokensToShares(BigNumber.min(sharesWorthRaw, poolLiqudityRaw).integerValue().toString(10)).call((error, sharesWithdrawableRaw) => {
               if (error) {
                 return;

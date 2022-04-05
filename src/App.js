@@ -6,6 +6,7 @@ import {
 import CustomAppBar from "./components/CustomAppBar";
 import ProblemBanner from "./components/ProblemBanner";
 import Balances from "./components/Balances";
+import LoansPanel from "./components/LoansPanel";
 import StakedAssetsPanel from "./components/StakedAssetsPanel";
 import StatsPanel from "./components/StatsPanel";
 
@@ -92,6 +93,10 @@ class App extends Component {
 
   stakeUpdateHandler = async () => {
     this.loadStakedShares();
+  }
+
+  loanUpdateHandler = async () => {
+    this.loadStats();
   }
 
   logIn = async () => {
@@ -238,7 +243,7 @@ class App extends Component {
   }
 
   loadStakedShares = async () => {
-    const { walletAddress, bankContract, tokenDecimals } = this.state;
+    const { bankContract, tokenDecimals } = this.state;
 
     try {
       bankContract.methods.sharesStaked().call((error, sharesStaked) => {
@@ -262,7 +267,7 @@ class App extends Component {
   }
 
   loadStats = async () => {
-    const { web3, walletAddress, bankContract, tokenDecimals, percentDecimals } = this.state;
+    const { web3, bankContract, tokenDecimals, } = this.state;
     if (!web3) {
       return;
     }
@@ -319,7 +324,7 @@ class App extends Component {
   }
 
   loadLoanParams = async () => {
-    const { web3, walletAddress, bankContract, tokenDecimals, percentDecimals } = this.state;
+    const { web3, bankContract, tokenDecimals, percentDecimals } = this.state;
     if (!web3) {
       return;
     }
@@ -377,6 +382,7 @@ class App extends Component {
               </>
             }
             <StakedAssetsPanel data={this.state} onTransact={this.stakeUpdateHandler} />
+            <LoansPanel data={this.state} onTransact={this.loanUpdateHandler} />
             <StatsPanel data={this.state} />
           </Stack>
         </Box>
