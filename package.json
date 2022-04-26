@@ -1,6 +1,6 @@
 {
-  "homepage": "https://bankfair.github.io/app",
-  "name": "app",
+  "homepage": "https://bankfair.github.io/app-prototype",
+  "name": "app-prototype",
   "version": "0.1.0",
   "private": true,
   "dependencies": {
