@@ -32,7 +32,7 @@ function CustomAppBar(props) {
   return (
     <AppBar position="static">
       <Toolbar variant="regular">
-        <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>BankFair</Typography>
+        <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>Sapling</Typography>
         <LoggedInUser isLoggedIn={props.isLoggedIn} walletAddress={props.walletAddress} />
         <LoginLogoutButton isLoggedIn={props.isLoggedIn} onLogIn={props.onLogIn} onLogOut={props.onLogOut} />
       </Toolbar>

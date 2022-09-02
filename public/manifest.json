@@ -1,6 +1,6 @@
 {
-  "short_name": "BankFair App",
-  "name": "BankFair smart contract interface",
+  "short_name": "Sapling App",
+  "name": "Sapling smart contract interface",
   "icons": [
     {
       "src": "favicon.ico",
